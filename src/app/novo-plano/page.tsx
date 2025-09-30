@@ -73,7 +73,7 @@ export default function NovoPlano() {
     return (
       <StudyPlanView 
         plans={generatedPlan}
-        planId={currentPlanId}
+        planId={currentPlanId || undefined}
         onGoBack={() => {
           setGeneratedPlan(null)
           setCurrentPlanId(null)
