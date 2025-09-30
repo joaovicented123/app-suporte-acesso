@@ -253,7 +253,7 @@ export default function NovoPlano() {
     console.log('Plano salvo com ID:', planId) // Debug
     
     // Verificar se foi salvo corretamente
-    const savedPlan = StudyPlanStorage.getPlanById(planId)
+    const savedPlan = StudyPlanStorage.getPlanById(await planId)
     console.log('Plano recuperado:', savedPlan) // Debug
     
     setCurrentPlanId(planId)
