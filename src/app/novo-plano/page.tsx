@@ -256,7 +256,7 @@ export default function NovoPlano() {
     const savedPlan = StudyPlanStorage.getPlanById(await planId)
     console.log('Plano recuperado:', savedPlan) // Debug
     
-    setCurrentPlanId(planId)
+    setCurrentPlanId(await planId)
     setGeneratedPlan(plan)
     
     // Esconder tela de carregamento
