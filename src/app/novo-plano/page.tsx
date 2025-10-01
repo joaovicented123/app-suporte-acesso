@@ -240,7 +240,7 @@ export default function NovoPlano() {
     }
     
     // Salvar o plano no localStorage com dados completos
-    const planId = StudyPlanStorage.savePlan({
+    const planId = await StudyPlanStorage.savePlan({
       title: `Plano ${formData.concurso} - ${formData.cargo}`,
       concurso: formData.concurso,
       cargo: formData.cargo,
@@ -253,10 +253,10 @@ export default function NovoPlano() {
     console.log('Plano salvo com ID:', planId) // Debug
     
     // Verificar se foi salvo corretamente
-    const savedPlan = StudyPlanStorage.getPlanById(await planId)
+    const savedPlan = StudyPlanStorage.getPlanById(planId)
     console.log('Plano recuperado:', savedPlan) // Debug
     
-    setCurrentPlanId(await planId)
+    setCurrentPlanId(planId)
     setGeneratedPlan(plan)
     
     // Esconder tela de carregamento
