@@ -193,7 +193,7 @@ export function EmailConfigurationPanel() {
               <CardHeader>
                 <CardTitle>{provider.name}</CardTitle>
                 <CardDescription>
-                  Host: {provider.host} | Porta: {provider.port}
+                  Configuração para {provider.name}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -210,11 +210,20 @@ export function EmailConfigurationPanel() {
                   size="sm" 
                   className="mt-3"
                   onClick={() => {
-                    setConfig({
-                      ...config,
-                      host: provider.host,
-                      port: provider.port.toString()
-                    })
+                    // Configurações específicas por provedor
+                    if (key === 'gmail') {
+                      setConfig({
+                        ...config,
+                        host: 'smtp.gmail.com',
+                        port: '587'
+                      })
+                    } else if (key === 'sendgrid') {
+                      setConfig({
+                        ...config,
+                        host: 'smtp.sendgrid.net',
+                        port: '587'
+                      })
+                    }
                   }}
                 >
                   Usar {provider.name}
