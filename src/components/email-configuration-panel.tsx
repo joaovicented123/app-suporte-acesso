@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CheckCircle, AlertCircle, Mail, Settings, Info } from 'lucide-react'
-import { EMAIL_CONFIG, SMTP_SETUP_INSTRUCTIONS, validateEmailConfig } from '@/lib/email-config'
+import { EMAIL_CONFIG, EMAIL_SETUP_INSTRUCTIONS, validateEmailConfig } from '@/lib/email-config'
 
 export function EmailConfigurationPanel() {
   const [config, setConfig] = useState({
@@ -188,7 +188,7 @@ export function EmailConfigurationPanel() {
         </TabsContent>
 
         <TabsContent value="providers" className="space-y-4">
-          {Object.entries(SMTP_SETUP_INSTRUCTIONS).map(([key, provider]) => (
+          {Object.entries(EMAIL_SETUP_INSTRUCTIONS).map(([key, provider]) => (
             <Card key={key}>
               <CardHeader>
                 <CardTitle>{provider.name}</CardTitle>
