@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { supabase, executeSupabaseOperation, isSupabaseConfigured } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
 interface AuthContextType {
@@ -21,57 +21,142 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Verificar se Supabase está configurado
+    if (!isSupabaseConfigured()) {
+      console.log('⚠️ [AUTH] Supabase não configurado, modo offline')
+      setLoading(false)
+      return
+    }
+
+    // Verificar sessão atual com tratamento de erro
+    const checkSession = async () => {
+      const session = await executeSupabaseOperation(
+        async () => {
+          const { data: { session }, error } = await supabase.auth.getSession()
+          if (error) throw error
+          return session
+        },
+        () => null,
+        'Verificar sessão atual'
+      )
+      
       setUser(session?.user ?? null)
       setLoading(false)
-    })
+    }
 
-    // Escutar mudanças de autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-      
-      // Redirecionar após login bem-sucedido
-      if (event === 'SIGNED_IN' && session?.user) {
-        router.push('/dashboard')
-      }
-      
-      // Redirecionar após logout
-      if (event === 'SIGNED_OUT') {
-        router.push('/')
-      }
-    })
+    checkSession()
 
-    return () => subscription.unsubscribe()
+    // Escutar mudanças de autenticação com tratamento de erro
+    const setupAuthListener = async () => {
+      try {
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log(`🔐 [AUTH] Evento de autenticação: ${event}`)
+          setUser(session?.user ?? null)
+          setLoading(false)
+          
+          // Redirecionar após login bem-sucedido
+          if (event === 'SIGNED_IN' && session?.user) {
+            router.push('/dashboard')
+          }
+          
+          // Redirecionar após logout
+          if (event === 'SIGNED_OUT') {
+            router.push('/')
+          }
+        })
+
+        return () => subscription.unsubscribe()
+      } catch (error) {
+        console.error('❌ [AUTH] Erro ao configurar listener de autenticação:', error)
+        setLoading(false)
+        return () => {}
+      }
+    }
+
+    const unsubscribe = setupAuthListener()
+    return () => {
+      unsubscribe.then(fn => fn())
+    }
   }, [router])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) throw error
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase não está configurado. Configure suas credenciais para fazer login.')
+    }
+
+    const result = await executeSupabaseOperation(
+      async () => {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) throw error
+        return true
+      },
+      () => { throw new Error('Erro de conectividade. Verifique sua conexão com a internet.') },
+      'Login'
+    )
+
+    if (!result) {
+      throw new Error('Não foi possível fazer login. Verifique sua conexão.')
+    }
   }
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name,
-        },
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase não está configurado. Configure suas credenciais para criar conta.')
+    }
+
+    const result = await executeSupabaseOperation(
+      async () => {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name,
+            },
+          },
+        })
+        if (error) throw error
+        return true
       },
-    })
-    if (error) throw error
+      () => { throw new Error('Erro de conectividade. Verifique sua conexão com a internet.') },
+      'Cadastro'
+    )
+
+    if (!result) {
+      throw new Error('Não foi possível criar conta. Verifique sua conexão.')
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    if (!isSupabaseConfigured()) {
+      // Se Supabase não está configurado, apenas limpar estado local
+      setUser(null)
+      return
+    }
+
+    const result = await executeSupabaseOperation(
+      async () => {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+        return true
+      },
+      () => {
+        // Fallback: limpar estado local mesmo se Supabase falhar
+        setUser(null)
+        return true
+      },
+      'Logout'
+    )
+
+    // Garantir que o usuário seja deslogado localmente
+    if (!result) {
+      setUser(null)
+    }
   }
 
   const value = {
