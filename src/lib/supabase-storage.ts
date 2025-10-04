@@ -7,10 +7,27 @@ export class SupabaseStorage {
   // Verificar se o Supabase está configurado
   static async isConfigured(): Promise<boolean> {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      return user !== null
+      // Verificar se as variáveis de ambiente estão definidas
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      
+      if (!supabaseUrl || !supabaseKey || supabaseUrl === '' || supabaseKey === '') {
+        console.log('Supabase não configurado - variáveis de ambiente ausentes')
+        return false
+      }
+
+      // Fazer uma verificação simples de conectividade
+      const { data, error } = await supabase.auth.getSession()
+      
+      // Se houver erro de rede, retornar false
+      if (error && error.message.includes('Failed to fetch')) {
+        console.log('Supabase não acessível - erro de rede')
+        return false
+      }
+      
+      return true
     } catch (error) {
-      console.log('Supabase não configurado ou não acessível')
+      console.log('Supabase não configurado ou não acessível:', error)
       return false
     }
   }
@@ -167,6 +184,11 @@ CREATE POLICY IF NOT EXISTS "Users can update own study plans" ON public.study_p
 
       return true
     } catch (error) {
+      // Capturar erros de rede especificamente
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('Erro de conectividade com Supabase, usando apenas localStorage')
+        return false
+      }
       console.error('Erro inesperado ao salvar no Supabase:', error)
       return false
     }
@@ -218,6 +240,11 @@ CREATE POLICY IF NOT EXISTS "Users can update own study plans" ON public.study_p
       console.log(`✅ Carregados ${plans.length} planos do Supabase`)
       return plans
     } catch (error) {
+      // Capturar erros de rede especificamente
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('Erro de conectividade com Supabase, usando apenas localStorage')
+        return []
+      }
       console.error('Erro inesperado ao carregar do Supabase:', error)
       return []
     }
@@ -264,6 +291,11 @@ CREATE POLICY IF NOT EXISTS "Users can update own study plans" ON public.study_p
       console.log('✅ Plano atualizado no Supabase com sucesso!')
       return true
     } catch (error) {
+      // Capturar erros de rede especificamente
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('Erro de conectividade com Supabase, usando apenas localStorage')
+        return false
+      }
       console.error('Erro inesperado ao atualizar no Supabase:', error)
       return false
     }
@@ -286,6 +318,11 @@ CREATE POLICY IF NOT EXISTS "Users can update own study plans" ON public.study_p
       console.log('⚠️ Operação DELETE não permitida no Supabase, mantendo apenas no localStorage')
       return true
     } catch (error) {
+      // Capturar erros de rede especificamente
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('Erro de conectividade com Supabase, usando apenas localStorage')
+        return false
+      }
       console.error('Erro inesperado ao deletar do Supabase:', error)
       return false
     }
@@ -312,6 +349,11 @@ CREATE POLICY IF NOT EXISTS "Users can update own study plans" ON public.study_p
         console.log('ℹ️ Nenhum plano encontrado no Supabase ou tabela não existe')
       }
     } catch (error) {
+      // Capturar erros de rede especificamente
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('Erro de conectividade com Supabase durante sincronização, mantendo localStorage')
+        return
+      }
       console.error('Erro na sincronização:', error)
     }
   }
@@ -343,6 +385,11 @@ CREATE POLICY IF NOT EXISTS "Users can update own study plans" ON public.study_p
       
       console.log(`✅ ${migratedCount} planos migrados com sucesso!`)
     } catch (error) {
+      // Capturar erros de rede especificamente
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('Erro de conectividade com Supabase durante migração')
+        return
+      }
       console.error('Erro na migração:', error)
     }
   }
