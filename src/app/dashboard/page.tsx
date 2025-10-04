@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { StudyPlanStorage, StoredStudyPlan } from '@/lib/study-plan-storage'
 import { PersistenceTest } from '@/lib/persistence-test'
+import { executeSupabaseOperation } from '@/lib/supabase'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -54,8 +55,13 @@ export default function Dashboard() {
     console.log('🔄 [DASHBOARD] Recarregando todos os dados...')
     if (typeof window !== 'undefined') {
       try {
-        // Tentar carregar do Supabase primeiro
-        const supabasePlans = await StudyPlanStorage.loadFromSupabase()
+        // Tentar carregar do Supabase primeiro com tratamento de erro robusto
+        const supabasePlans = await executeSupabaseOperation(
+          async () => await StudyPlanStorage.loadFromSupabase(),
+          () => [],
+          'Carregar planos do Supabase'
+        ) || []
+        
         const plans = supabasePlans.length > 0 ? supabasePlans : StudyPlanStorage.getAllPlans()
         
         const planStats = StudyPlanStorage.getStats()
@@ -89,7 +95,17 @@ export default function Dashboard() {
   const autoSync = async () => {
     try {
       console.log('🔄 [DASHBOARD] Iniciando sincronização automática...')
-      await StudyPlanStorage.syncData()
+      await executeSupabaseOperation(
+        async () => {
+          await StudyPlanStorage.syncData()
+          return true
+        },
+        () => {
+          console.log('⚠️ [DASHBOARD] Sincronização automática falhou (normal se Supabase não configurado)')
+          return false
+        },
+        'Sincronização automática'
+      )
       console.log('✅ [DASHBOARD] Sincronização automática concluída')
     } catch (error) {
       console.log('⚠️ [DASHBOARD] Sincronização automática falhou (normal se Supabase não configurado):', error)
@@ -152,6 +168,8 @@ export default function Dashboard() {
       router.push('/')
     } catch (error) {
       console.error('Erro ao fazer logout:', error)
+      // Mesmo com erro, redirecionar para home
+      router.push('/')
     }
   }
 
